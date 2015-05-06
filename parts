@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+ 
+if [ $# -eq 0 ]; then
+  echo -e "NAME"
+  echo -e "\tparts - split a file into N equal parts"
+  echo -e ""
+  echo -e "SYNOPSIS"
+  echo -e "\tparts FILE NUM_PARTS"
+  echo -e ""
+  echo -e "DESCRIPTION"
+  echo -e "\tThe original file will remain untouched."
+  echo -e "\tEach resulting file will have a .ptXX suffix where XX"
+  echo -e "\tis sequential file number."
+  echo -e ""
+  echo -e "\tExample - to split a file into 30 parts:"
+  echo -e "\t    parts myfile.txt 30"
+  exit 1
+fi
+ 
+split -dl$((`wc -l < $1`/$2+1)) $1 $1.pt
