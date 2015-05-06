@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+  echo -e "NAME"
+  echo -e "\tmyqstat - list my current running Grid Engine jobs"
+  echo -e ""
+  echo -e "SYNOPSIS"
+  echo -e "\tmyqstat [USERNAME]"
+  echo -e ""
+  echo -e "DESCRIPTION"
+  echo -e "\tShow a list of my current running Grid Engine jobs without"
+  echo -e "\tshowing the jobs of other users."
+  echo -e "\tProvide a username to list the jobs of that specific user."
+  echo -e ""
+  echo -e "\tExamples:"
+  echo -e "\t    myqstat"
+  echo -e "\t    myqstat dmr"
+  exit 1
+fi
+
+if [ $# -eq 0 ]; then
+  username=$(whoami)
+else
+  username=$1
+fi
+qstat | grep $username
