@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+# Sorts a file by chromosomal position
+# 
+# Input file must have the following format:
+# - Column 1: chromosome (e.g. chr1, chr10 *OR* 1, 10)
+# - Column 2: start position (e.g. 4325484)
+# - All other columns can be ordered in any way
+#
+# Input file sample:
+#   chr17:5432542:G>A     .........
+#   17:5432542:G>A        .........
+#   chr17  5432542  G  A  .........
+#   17  5432542  G  A     .........
+#   17,5432542,G,A        .........
+# DO NOT USE SPACES! TABS ARE THE ONLY WHITESPACE-DELIMITER ALLOWED!
+#
+# Example usage (INPUT FILE HAS A HEADER):
+#   ruby sort_variants.rb input.txt > output.txt
+#   
+# Example usage (INPUT FILE HAS *NO* HEADER):
+#   ruby sort_variants.rb --no-header input.txt > output.txt
+#   ruby sort_variants.rb -n input.txt > output.txt
+
+if ARGV.include?("--no-header") || ARGV.include?("-n")
+  # This file does NOT include a header...
+  ARGV.delete("--no-header")
+  ARGV.delete("-n")
+  HEADER = false
+else
+  # This file includes a header...
+  HEADER = true
+end
+
+F_IN = ARGV[0]
+
+# Get proper dilimiters from 2nd line
+line = `tail -n+2 #{F_IN} | head -n1`.chomp
+delim1,delim2,delim3,delim4 = line.scan(/[:>,\t]/)
+
+# If delim2/delim3/delim4 don't exist, just use a space
+delim2 = ' ' if delim2.nil?
+delim3 = ' ' if delim3.nil?
+delim4 = ' ' if delim4.nil?
+
+# Set input
+if HEADER
+  # Print header
+  puts `head -1 #{F_IN}`
+  # Input all file contents except header
+  INPUT = "tail -n+2 #{F_IN}"
+else
+  # Input all file contents
+  INPUT = "cat #{F_IN}"
+end
+
+# To sort:
+# 1.) Replace all delimiters with spaces so that
+#     Linux sort works reliably
+# 2.) Sort on 1st, then 2nd, then 3rd, then 4th,
+#     then 5th-and-so-on fields
+# 3.) Replace all spaces with original delimiters
+puts `
+  #{INPUT} \
+  | sed 's/#{delim1}/ /' \
+  | sed 's/#{delim2}/ /' \
+  | sed 's/#{delim3}/ /' \
+  | sed 's/#{delim4}/ /' \
+  | sort -k1,1d -k2,2n -k3,3d -k4,4d -k5d \
+  | sed 's/ /#{delim1}/' \
+  | sed 's/ /#{delim2}/' \
+  | sed 's/ /#{delim3}/' \
+  | sed 's/ /#{delim4}/'
+`
