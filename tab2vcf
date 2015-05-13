@@ -1,0 +1,125 @@
+#!/usr/bin/env ruby
+
+# Convert tab-delimited file to VCF file
+# 
+# Example usage:
+#   ruby tab2vcf.rb variants.txt > variants.vcf
+
+require './.includes/lib/trollop.rb'
+
+opts = Trollop::options do
+  opt :chr, "Column number with chromosome number/letter", :default => 1
+  opt :pos, "Column number with starting position", :default => 2
+  opt :ref, "Column number with reference allele", :default => 3
+  opt :alt, "Column number with alternate allele", :default => 4
+  opt :id, "Column number with rsID", :type => :int, :default => nil
+  opt :qual, "Column number with quality specification", :type => :int, :default => nil
+  opt :filter, "Column number with filter specification", :type => :int, :default => nil
+  opt :source, "Data source", :default => '.'
+  opt :snp_build, "dbSNP build ID (e.g. 138)", :default => '.'
+  opt :reference, "Genome build (e.g. hg19)", :type => :string, :default => '.'
+  opt :empty_values, "Nomenclature used in input file for empty values", :default => 'NA,N/A,NULL,null'
+end
+
+# Options
+NUM_CHR = opts[:chr] - 1
+NUM_POS = opts[:pos] - 1
+NUM_REF = opts[:ref] - 1
+NUM_ALT = opts[:alt] - 1
+if opts[:id].nil?
+  NUM_ID = nil
+else
+  NUM_ID = opts[:id] - 1
+end
+if opts[:qual].nil?
+  NUM_QUAL = nil
+else
+  NUM_QUAL = opts[:qual] - 1
+end
+if opts[:filter].nil?
+  NUM_FILTER = nil
+else
+  NUM_FILTER = opts[:filter] - 1
+end
+EMPTY_VALUES = opts[:empty_values].split(',')
+
+# Input file
+F_IN = ARGV[0]
+
+header = ""
+info_tags = []
+row_num = 0
+File.open(F_IN).each_line do |row|
+  row_num += 1
+  row.strip!
+  fields = row.split("\t")
+
+  # Print header and INFO tags
+  if row_num == 1
+    TIME = Time.now.strftime("%Y%m%d")
+    header = "##fileformat=VCFv4.2\n" +
+             "##fileDate=#{TIME}\n" +
+             "##source=#{opts[:source]}\n" +
+             "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
+             "##reference=#{opts[:reference]}\n"
+    fields.each_with_index do |f, i|
+      fields[i] = fields[i].strip.gsub(/[=;\s]+/, '_').upcase
+      info_tags << fields[i]
+      next if i == NUM_CHR
+      next if i == NUM_POS
+      next if i == NUM_REF
+      next if i == NUM_ALT
+      next if i == NUM_ID
+      next if i == NUM_QUAL
+      next if i == NUM_FILTER
+      header += "##INFO=<ID=#{fields[i]},Number=.,Type=String,Description=\"\">\n"
+    end
+    header += ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO'].join("\t")
+    header += "\n"
+    puts header
+    next
+  end
+
+  output = []
+
+  # Format all values and create INFO column
+  # - Replace all spaces, equal-signs, and semi-colons with underscores
+  # - Prepend the correct INFO tag
+  output[7] = []
+  fields.each_with_index do |f, i|
+    fields[i] = fields[i].strip.gsub(/[=;\s]+/, '_')
+    fields[i] = '.' if EMPTY_VALUES.include?(fields[i])
+    next if i == NUM_CHR
+    next if i == NUM_POS
+    next if i == NUM_REF
+    next if i == NUM_ALT
+    next if i == NUM_ID
+    next if i == NUM_QUAL
+    next if i == NUM_FILTER
+    output[7] << "#{info_tags[i]}=#{fields[i]}"
+  end
+  output[7] = output[7].join(';')
+
+  # Define all other columns (non-INFO)
+  output[0] = fields[NUM_CHR] # CHROM
+  output[1] = fields[NUM_POS] # POS
+  if NUM_ID.nil? # ID
+    output[2] = '.'
+  else
+    output[2] = fields[NUM_ID]
+  end
+  output[3] = fields[NUM_REF] # REF
+  output[4] = fields[NUM_ALT] # ALT
+  if NUM_QUAL.nil? # QUAL
+    output[5] = '.'
+  else
+    output[5] = fields[NUM_QUAL]
+  end
+  if NUM_FILTER.nil? # FILTER
+    output[6] = '.'
+  else
+    output[6] = fields[NUM_FILTER]
+  end
+
+  puts output.join("\t")
+end
