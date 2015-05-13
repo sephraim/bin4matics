@@ -13,7 +13,10 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
   echo -e "\tProvide a username to list the jobs of that specific user."
   echo -e ""
   echo -e "\tExamples:"
+  echo -e "\t    # Check your own qstat"
   echo -e "\t    myqstat"
+  echo -e ""
+  echo -e "\t    # Check another user's qstat"
   echo -e "\t    myqstat dmr"
   exit 1
 fi
