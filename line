@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+  echo -e "NAME"
+  echo -e "\tline - get a line from a file by its line number"
+  echo -e ""
+  echo -e "SYNOPSIS"
+  echo -e "\tline NUM FILE"
+  echo -e ""
+  echo -e "DESCRIPTION"
+  echo -e "\tRetrieve a specific line from a file by supplying"
+  echo -e "\tthe line number and file name."
+  echo -e ""
+  echo -e "\tExamples:"
+  echo -e "\t    # Using basic file input"
+  echo -e "\t    line 99 problems.txt"
+  echo -e ""
+  echo -e "\t    # Using piped input from basic file"
+  echo -e "\t    cat dalmations.txt | line 101"
+  echo -e ""
+  echo -e "\t    # Using piped input from compressed file"
+  echo -e "\t    zcat myvariants.vcf.gz | line 70"
+  exit 1
+fi
+
+tail -n+$1 $2 | head -n1
