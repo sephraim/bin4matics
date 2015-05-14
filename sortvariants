@@ -32,6 +32,11 @@ else
   HEADER = true
 end
 
+# Exit if no input file specified
+if ARGV[0].nil?
+  abort "You must supply an input file"
+end
+
 F_IN = ARGV[0]
 
 # Get proper dilimiters from 2nd line

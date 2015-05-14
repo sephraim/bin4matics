@@ -5,7 +5,8 @@
 # Example usage:
 #   ruby tab2vcf.rb variants.txt > variants.vcf
 
-require './.includes/lib/trollop.rb'
+SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
+require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
 
 opts = Trollop::options do
   opt :chr, "Column number with chromosome number/letter", :default => 1
@@ -17,8 +18,14 @@ opts = Trollop::options do
   opt :filter, "Column number with filter specification", :type => :int, :default => nil
   opt :source, "Data source", :default => '.'
   opt :snp_build, "dbSNP build ID (e.g. 138)", :default => '.'
-  opt :reference, "Genome build (e.g. hg19)", :type => :string, :default => '.'
+  opt :reference, "Genome build (e.g. GRCh37, hg19)", :type => :string, :default => '.'
   opt :empty_values, "Nomenclature used in input file for empty values", :default => 'NA,N/A,NULL,null'
+end
+
+# Exit if no input file specified
+if ARGV[0].nil?
+  puts `#{$PROGRAM_NAME} --help`
+  abort
 end
 
 # Options
