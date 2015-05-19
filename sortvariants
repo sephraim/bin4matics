@@ -22,10 +22,16 @@
 #   ruby sort_variants.rb --no-header input.txt > output.txt
 #   ruby sort_variants.rb -n input.txt > output.txt
 
-if ARGV.include?("--no-header") || ARGV.include?("-n")
+# Include dependencies
+SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
+require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
+
+opts = Trollop::options do
+  opt :no_header, "Input file does not include a header", :short => 'n', :default => false
+end
+
+if opts(:no_header) != false
   # This file does NOT include a header...
-  ARGV.delete("--no-header")
-  ARGV.delete("-n")
   HEADER = false
 else
   # This file includes a header...

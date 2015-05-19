@@ -5,21 +5,22 @@
 # Example usage:
 #   ruby tab2vcf.rb variants.txt > variants.vcf
 
+# Include dependencies
 SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
 require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
 
 opts = Trollop::options do
-  opt :chr, "Column number with chromosome number/letter", :default => 1
-  opt :pos, "Column number with starting position", :default => 2
-  opt :ref, "Column number with reference allele", :default => 3
-  opt :alt, "Column number with alternate allele", :default => 4
-  opt :id, "Column number with rsID", :type => :int, :default => nil
-  opt :qual, "Column number with quality specification", :type => :int, :default => nil
-  opt :filter, "Column number with filter specification", :type => :int, :default => nil
-  opt :source, "Data source", :default => '.'
-  opt :snp_build, "dbSNP build ID (e.g. 138)", :default => '.'
-  opt :reference, "Genome build (e.g. GRCh37, hg19)", :type => :string, :default => '.'
-  opt :empty_values, "Nomenclature used in input file for empty values", :default => 'NA,N/A,NULL,null'
+  opt :chr, "Column number with chromosome number/letter", :short => 'c', :default => 1
+  opt :pos, "Column number with starting position", :short => 'p', :default => 2
+  opt :ref, "Column number with reference allele", :short => 'r', :default => 3
+  opt :alt, "Column number with alternate allele", :short => 'a', :default => 4
+  opt :id, "Column number with rsID", :short => 'i', :type => :int, :default => nil
+  opt :qual, "Column number with quality specification", :short => 'q', :type => :int, :default => nil
+  opt :filter, "Column number with filter specification", :short => 'f', :type => :int, :default => nil
+  opt :source, "Data source", :short => 's', :default => '.'
+  opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'b', :default => '.'
+  opt :reference, "Genome build (e.g. GRCh37.p13, hg19)", :short => 'g', :type => :string, :default => '.'
+  opt :empty_values, "Nomenclature used in input file for empty values", :short => 'e', :default => 'NA,N/A,NULL,null'
 end
 
 # Exit if no input file specified
