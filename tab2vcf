@@ -80,7 +80,7 @@ File.open(F_IN).each_line do |row|
       next if i == NUM_ID
       next if i == NUM_QUAL
       next if i == NUM_FILTER
-      header += "##INFO=<ID=#{fields[i]},Number=.,Type=String,Description=\"\">\n"
+      header += "##INFO=<ID=#{fields[i]},Number=.,Type=String,Description=\"NA\">\n"
     end
     header += ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO'].join("\t")
     header += "\n"
