@@ -54,6 +54,14 @@ EMPTY_VALUES = opts[:empty_values].split(',')
 # Input file
 F_IN = ARGV[0]
 
+# Incompatible INFO field characters
+DISALLOWED_INFO_CHARS = {
+  ',' => '_AND_',
+  ';' => '|',
+  ' ' => '_',
+  '=' => '->',
+}
+
 header = ""
 info_tags = []
 row_num = 0
@@ -71,7 +79,7 @@ File.open(F_IN).each_line do |row|
              "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
              "##reference=#{opts[:reference]}\n"
     fields.each_with_index do |f, i|
-      fields[i] = fields[i].strip.gsub(/[=;\s]+/, '_').upcase
+      fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase
       info_tags << fields[i]
       next if i == NUM_CHR
       next if i == NUM_POS
@@ -95,7 +103,7 @@ File.open(F_IN).each_line do |row|
   # - Prepend the correct INFO tag
   output[7] = []
   fields.each_with_index do |f, i|
-    fields[i] = fields[i].strip.gsub(/[=;\s]+/, '_')
+    fields[i] = fields[i].strip.gsub(/[,=; ]/, DISALLOWED_INFO_CHARS)
     fields[i] = '.' if EMPTY_VALUES.include?(fields[i])
     next if i == NUM_CHR
     next if i == NUM_POS
