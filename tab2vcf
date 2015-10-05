@@ -20,6 +20,7 @@ opts = Trollop::options do
   opt :source, "Data source", :short => 's', :default => '.'
   opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'b', :default => '.'
   opt :reference, "Genome build (e.g. GRCh37.p13, hg19)", :short => 'g', :type => :string, :default => '.'
+  opt :prefix, "Prefix for all info fields", :short => 'x', :type => :string
   opt :empty_values, "Nomenclature used in input file for empty values", :short => 'e', :default => 'NA,N/A,NULL,null'
 end
 
@@ -48,6 +49,13 @@ if opts[:filter].nil?
   NUM_FILTER = nil
 else
   NUM_FILTER = opts[:filter] - 1
+end
+if opts[:prefix].nil?
+  INFO_PREFIX = ''
+elsif opts[:prefix].match(/[,=;\s]/)
+  abort "ERROR: No white-space, commas, semi-colons, or equals-signs allowed for --prefix"
+else
+  INFO_PREFIX = opts[:prefix]
 end
 EMPTY_VALUES = opts[:empty_values].split(',')
 
@@ -79,7 +87,7 @@ File.open(F_IN).each_line do |row|
              "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
              "##reference=#{opts[:reference]}\n"
     fields.each_with_index do |f, i|
-      fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase
+      fields[i] = fields[i].strip.sub(/^/, INFO_PREFIX).gsub(/[,=; ]+/, '_').upcase
       info_tags << fields[i]
       next if i == NUM_CHR
       next if i == NUM_POS
