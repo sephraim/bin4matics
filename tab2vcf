@@ -21,7 +21,7 @@ opts = Trollop::options do
   opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'b', :default => '.'
   opt :reference, "Genome build (e.g. GRCh37.p13, hg19)", :short => 'g', :type => :string, :default => '.'
   opt :prefix, "Prefix for all info fields", :short => 'x', :type => :string
-  opt :empty_values, "Nomenclature used in input file for empty values", :short => 'e', :default => 'NA,N/A,NULL,null'
+  opt :empty_values, "Nomenclature used in input file for empty values", :short => 'e', :default => 'NA,N/A,NULL,null,nil,\N'
 end
 
 # Exit if no input file specified
