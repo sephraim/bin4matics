@@ -57,17 +57,19 @@ elsif opts[:prefix].match(/[,=;\s]/)
 else
   INFO_PREFIX = opts[:prefix]
 end
-EMPTY_VALUES = opts[:empty_values].split(',')
+EMPTY_VALUES = opts[:empty_values].split(',').push("")
 
 # Input file
 F_IN = ARGV[0]
 
 # Incompatible INFO field characters
 DISALLOWED_INFO_CHARS = {
-  ',' => '_AND_',
-  ';' => '|',
-  ' ' => '_',
-  '=' => '->',
+  ', ' => '_AND_',
+  ','  => '_AND_',
+  '; ' => '|',
+  ';'  => '|',
+  ' '  => '_',
+  '='  => '->',
 }
 
 header = ""
@@ -111,7 +113,7 @@ File.open(F_IN).each_line do |row|
   # - Prepend the correct INFO tag
   output[7] = []
   fields.each_with_index do |f, i|
-    fields[i] = fields[i].strip.gsub(/[,=; ]/, DISALLOWED_INFO_CHARS)
+    fields[i] = fields[i].strip.gsub(/[,;= ][ ]?/, DISALLOWED_INFO_CHARS)
     fields[i] = '.' if EMPTY_VALUES.include?(fields[i])
     next if i == NUM_CHR
     next if i == NUM_POS
