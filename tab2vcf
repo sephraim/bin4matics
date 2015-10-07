@@ -3,7 +3,7 @@
 # Convert tab-delimited file to VCF file
 # 
 # Example usage:
-#   ruby tab2vcf.rb variants.txt > variants.vcf
+#   ./tab2vcf.rb variants.txt > variants.vcf
 
 # Include dependencies
 SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
@@ -19,16 +19,16 @@ opts = Trollop::options do
   opt :filter, "Column number with filter specification", :short => 'f', :type => :int, :default => nil
   opt :source, "Data source", :short => 's', :default => '.'
   opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'S', :default => '.'
-  opt :reference, "Genome build (e.g. GRCh37.p13, hg19)", :short => 'R', :type => :string, :default => '.'
-  opt :prefix, "Prefix for all info fields", :short => 'P', :type => :string
-  opt :descriptions, 'File with all column descriptions (format: column_name\tdescription\n)', :short => 'd', :type => :string
-  opt :empty_values, "Nomenclature used in input file for empty values", :short => 'e', :default => 'NA,N/A,NULL,null,nil,\N'
+  opt :reference, "Genome build (e.g. GRCh37.p13, GRCh38, hg19, hg38)", :short => 'R', :type => :string, :default => '.'
+  opt :prefix, "Prefix for all INFO tags in the output VCF", :short => 'P', :type => :string
+  opt :info_tag_map, "File with input column names mapped to their respective meta-info descriptions and (optionally) preferred INFO tag names\nFormat: original_name\\tdescription\\tINFO_tag_name\\n", :short => 'I', :type => :string
+  opt :empty_values, "Input values that should be mapped to a single period (i.e. empty) in the output VCF", :short => 'e', :default => 'NA,N/A,NULL,null,nil,\N'
 end
 
 # Exit if no input file specified
-if ARGV[0].nil?
-  puts `#{$PROGRAM_NAME} --help`
-  abort
+if ARGV.empty?
+  STDERR.puts "Error: Must specify input file"
+  Trollop::educate
 end
 
 # Options
@@ -54,25 +54,30 @@ end
 if opts[:prefix].nil?
   INFO_PREFIX = ''
 elsif opts[:prefix].match(/[,=;\s]/)
-  abort "ERROR: No white-space, commas, semi-colons, or equals-signs allowed for --prefix"
+  abort "Error: No white-space, commas, semi-colons, or equals-signs allowed for --prefix"
 else
   INFO_PREFIX = opts[:prefix]
 end
-if opts[:descriptions].nil?
-  DESCRIPTIONS = nil
+if opts[:info_tag_map].nil?
+  INFO_TAG_MAP = nil
 else
-  if !File.exist?(opts[:descriptions])
-    abort "ERROR: File #{opts[:descriptions]} does not exist for --descriptions option"
+  if !File.exist?(opts[:info_tag_map])
+    abort "Error: File #{opts[:info_tag_map]} does not exist for --info-tag-map option"
   else
-    descriptions = {}
-    File.open(opts[:descriptions]).each_line do |line|
-      c,d = line.chomp.split("\t")
-      if d.to_s.empty?
-        d = 'NA'
+    info_tag_map = {}
+    File.open(opts[:info_tag_map]).each_line do |line|
+      col,description,new_name = line.chomp.split("\t")
+      if description.to_s.empty?
+        description = 'NA'
       end
-      descriptions[c] = d
+      if new_name.to_s.empty?
+        new_name = nil
+      end
+      info_tag_map[col] = {}
+      info_tag_map[col][:description] = description
+      info_tag_map[col][:new_name] = new_name
     end
-    DESCRIPTIONS = descriptions
+    INFO_TAG_MAP = info_tag_map
   end
 end
 EMPTY_VALUES = opts[:empty_values].split(',').push("")
@@ -80,8 +85,8 @@ EMPTY_VALUES = opts[:empty_values].split(',').push("")
 # Input file
 F_IN = ARGV[0]
 
-# Incompatible INFO field characters
-DISALLOWED_INFO_CHARS = {
+# Illegal INFO field characters mapped to their legal values
+ILLEGAL_INFO_CHARS = {
   ', ' => '_AND_',
   ','  => '_AND_',
   '; ' => '|',
@@ -107,12 +112,18 @@ File.open(F_IN).each_line do |row|
              "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
              "##reference=#{opts[:reference]}\n"
     fields.each_with_index do |f, i|
-      if descriptions[fields[i]].nil?
+      # Update INFO field description
+      if INFO_TAG_MAP[fields[i]].nil?
         description = "NA"
       else
-        description = descriptions[fields[i]]
+        description = INFO_TAG_MAP[fields[i]][:description].gsub('"', "'")
       end
-      fields[i] = fields[i].strip.sub(/^/, INFO_PREFIX).gsub(/[,=; ]+/, '_').upcase
+      # Update INFO field name
+      if info_tag_map[fields[i]][:new_name].nil?
+        fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase.sub(/^/, INFO_PREFIX)
+      else
+        fields[i] = INFO_TAG_MAP[fields[i]][:new_name].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
+      end
       info_tags << fields[i]
       next if i == NUM_CHR
       next if i == NUM_POS
@@ -132,11 +143,11 @@ File.open(F_IN).each_line do |row|
   output = []
 
   # Format all values and create INFO column
-  # - Replace all spaces, equal-signs, and semi-colons with underscores
-  # - Prepend the correct INFO tag
+  # - Replace all spaces, commas, equal-signs, and semi-colons with legal characters
+  # - Prepend the correct INFO tag to each value (e.g. TAG=value)
   output[7] = []
   fields.each_with_index do |f, i|
-    fields[i] = fields[i].strip.gsub(/[,;= ][ ]?/, DISALLOWED_INFO_CHARS)
+    fields[i] = fields[i].strip.gsub(/[,;= ][ ]?/, ILLEGAL_INFO_CHARS)
     fields[i] = '.' if EMPTY_VALUES.include?(fields[i])
     next if i == NUM_CHR
     next if i == NUM_POS
