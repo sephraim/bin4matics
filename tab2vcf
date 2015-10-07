@@ -21,6 +21,7 @@ opts = Trollop::options do
   opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'S', :default => '.'
   opt :reference, "Genome build (e.g. GRCh37.p13, GRCh38, hg19, hg38)", :short => 'R', :type => :string, :default => '.'
   opt :prefix, "Prefix for all INFO tags in the output VCF", :short => 'P', :type => :string
+  opt :no_all_caps, "Do not convert INFO tags to all capital letters in the output VCF", :short => 'n', :default => false
   opt :info_tag_map, "File with input column names mapped to their respective meta-info descriptions and (optionally) preferred INFO tag names\nFormat: original_name\\tdescription\\tINFO_tag_name\\n", :short => 'I', :type => :string
   opt :empty_values, "Input values that should be mapped to a single period (i.e. empty) in the output VCF", :short => 'e', :default => 'NA,N/A,NULL,null,nil,\N'
 end
@@ -112,16 +113,23 @@ File.open(F_IN).each_line do |row|
              "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
              "##reference=#{opts[:reference]}\n"
     fields.each_with_index do |f, i|
-      # Update INFO field description
+      # Update INFO tag description
       if INFO_TAG_MAP[fields[i]].nil?
         description = "NA"
       else
         description = INFO_TAG_MAP[fields[i]][:description].gsub('"', "'")
       end
-      # Update INFO field name
+      # Update INFO tag name
       if info_tag_map[fields[i]][:new_name].nil?
-        fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase.sub(/^/, INFO_PREFIX)
+        if opts[:no_all_caps]
+          # Do not capitalize INFO tag
+          fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
+        else
+          # Capitalize INFO tag (except the prefix)
+          fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase.sub(/^/, INFO_PREFIX)
+        end
       else
+        # Use the user-specified INFO tag name
         fields[i] = INFO_TAG_MAP[fields[i]][:new_name].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
       end
       info_tags << fields[i]
