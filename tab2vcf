@@ -7,7 +7,11 @@
 
 # Include dependencies
 SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
-require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
+begin
+  require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
+rescue Exception => e
+  require 'trollop'
+end
 
 opts = Trollop::options do
   opt :chr, "Column number with chromosome number/letter", :short => 'c', :default => 1
@@ -114,13 +118,13 @@ File.open(F_IN).each_line do |row|
              "##reference=#{opts[:reference]}\n"
     fields.each_with_index do |f, i|
       # Update INFO tag description
-      if INFO_TAG_MAP[fields[i]].nil?
+      if INFO_TAG_MAP.nil? || INFO_TAG_MAP[fields[i]].nil?
         description = "NA"
       else
         description = INFO_TAG_MAP[fields[i]][:description].gsub('"', "'")
       end
       # Update INFO tag name
-      if info_tag_map[fields[i]][:new_name].nil?
+      if INFO_TAG_MAP.nil? || INFO_TAG_MAP[fields[i]][:new_name].nil?
         if opts[:no_all_caps]
           # Do not capitalize INFO tag
           fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
