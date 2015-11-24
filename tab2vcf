@@ -3,10 +3,11 @@
 # Convert tab-delimited file to VCF file
 # 
 # Example usage:
-#   ./tab2vcf.rb variants.txt > variants.vcf
+#   tab2vcf variants.txt > variants.vcf
 
 # Include dependencies
 SCRIPT_ROOT = File.expand_path(File.dirname(__FILE__))
+require 'uri'
 begin
   require File.join(SCRIPT_ROOT, '.includes', 'lib', 'trollop.rb')
 rescue Exception => e
@@ -23,7 +24,7 @@ opts = Trollop::options do
   opt :filter, "Column number with filter specification", :short => 'f', :type => :int, :default => nil
   opt :source, "Data source", :short => 's', :default => '.'
   opt :snp_build, "dbSNP build ID (e.g. 142)", :short => 'S', :default => '.'
-  opt :reference, "Genome build (e.g. GRCh37.p13, GRCh38, hg19, hg38)", :short => 'R', :type => :string, :default => '.'
+  opt :reference, "Reference genome assembly (e.g. GRCh37.p13, GRCh38, hg19, hg38)", :short => 'R', :type => :string, :default => '.'
   opt :prefix, "Prefix for all INFO tags in the output VCF", :short => 'P', :type => :string
   opt :no_all_caps, "Do not convert INFO tags to all capital letters in the output VCF", :short => 'n', :default => false
   opt :info_tag_map, "File with input column names mapped to their respective meta-info descriptions and (optionally) preferred INFO tag names\nFormat: original_name\\tdescription\\tINFO_tag_name\\n", :short => 'I', :type => :string
@@ -32,7 +33,7 @@ end
 
 # Exit if no input file specified
 if ARGV.empty?
-  STDERR.puts "Error: Must specify input file"
+  STDERR.puts "ERROR: Must specify input file"
   Trollop::educate
 end
 
@@ -59,7 +60,7 @@ end
 if opts[:prefix].nil?
   INFO_PREFIX = ''
 elsif opts[:prefix].match(/[,=;\s]/)
-  abort "Error: No white-space, commas, semi-colons, or equals-signs allowed for --prefix"
+  abort "ERROR: No white-space, commas, semi-colons, or equals-signs allowed for --prefix"
 else
   INFO_PREFIX = opts[:prefix]
 end
@@ -67,7 +68,7 @@ if opts[:info_tag_map].nil?
   INFO_TAG_MAP = nil
 else
   if !File.exist?(opts[:info_tag_map])
-    abort "Error: File #{opts[:info_tag_map]} does not exist for --info-tag-map option"
+    abort "ERROR: File #{opts[:info_tag_map]} does not exist for --info-tag-map option"
   else
     info_tag_map = {}
     File.open(opts[:info_tag_map]).each_line do |line|
@@ -85,20 +86,10 @@ else
     INFO_TAG_MAP = info_tag_map
   end
 end
-EMPTY_VALUES = opts[:empty_values].split(',').push("")
+EMPTY_VALUES = opts[:empty_values].split(',').push("").push(nil)
 
 # Input file
 F_IN = ARGV[0]
-
-# Illegal INFO field characters mapped to their legal values
-ILLEGAL_INFO_CHARS = {
-  ', ' => '_AND_',
-  ','  => '_AND_',
-  '; ' => '|',
-  ';'  => '|',
-  ' '  => '_',
-  '='  => '->',
-}
 
 header = ""
 info_tags = []
@@ -159,8 +150,6 @@ File.open(F_IN).each_line do |row|
   # - Prepend the correct INFO tag to each value (e.g. TAG=value)
   output[7] = []
   fields.each_with_index do |f, i|
-    fields[i] = fields[i].strip.gsub(/[,;= ][ ]?/, ILLEGAL_INFO_CHARS)
-    fields[i] = '.' if EMPTY_VALUES.include?(fields[i])
     next if i == NUM_CHR
     next if i == NUM_POS
     next if i == NUM_REF
@@ -168,8 +157,17 @@ File.open(F_IN).each_line do |row|
     next if i == NUM_ID
     next if i == NUM_QUAL
     next if i == NUM_FILTER
+    fields[i] = fields[i].strip
+    if EMPTY_VALUES.include?(fields[i])
+      fields[i] = '.'
+    else
+      fields[i] = URI.escape(fields[i], ';,= ')
+    end
+    # Append tag to INFO column
     output[7] << "#{info_tags[i]}=#{fields[i]}"
   end
+
+  # Create INFO column
   output[7] = output[7].join(';')
 
   # Define all other columns (non-INFO)
