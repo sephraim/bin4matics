@@ -107,15 +107,23 @@ File.open(F_IN).each_line do |row|
              "##source=#{opts[:source]}\n" +
              "##dbSNP_BUILD_ID=#{opts[:snp_build]}\n" +
              "##reference=#{opts[:reference]}\n"
+
+    # Update INFO tags
     fields.each_with_index do |f, i|
-      # Update INFO tag description
-      if INFO_TAG_MAP.nil? || INFO_TAG_MAP[fields[i]].nil?
-        description = "NA"
-      else
+      # Update INFO tag *description*
+      if INFO_TAG_MAP.is_a?(Hash) && INFO_TAG_MAP.has_key?(fields[i]) && INFO_TAG_MAP[fields[i]].has_key?(:description)
+        # Use the user-defined description
         description = INFO_TAG_MAP[fields[i]][:description].gsub('"', "'")
+      else
+        # Use the default description
+        description = "NA"
       end
-      # Update INFO tag name
-      if INFO_TAG_MAP.nil? || INFO_TAG_MAP[fields[i]][:new_name].nil?
+
+      # Update INFO tag *name*
+      if INFO_TAG_MAP.is_a?(Hash) && INFO_TAG_MAP.has_key?(fields[i]) && INFO_TAG_MAP[fields[i]].has_key?(:new_name)
+        # Use the user-defined INFO tag name
+        fields[i] = INFO_TAG_MAP[fields[i]][:new_name].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
+      else
         if opts[:no_all_caps]
           # Do not capitalize INFO tag
           fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
@@ -123,11 +131,10 @@ File.open(F_IN).each_line do |row|
           # Capitalize INFO tag (except the prefix)
           fields[i] = fields[i].strip.gsub(/[,=; ]+/, '_').upcase.sub(/^/, INFO_PREFIX)
         end
-      else
-        # Use the user-specified INFO tag name
-        fields[i] = INFO_TAG_MAP[fields[i]][:new_name].strip.gsub(/[,=; ]+/, '_').sub(/^/, INFO_PREFIX)
       end
       info_tags << fields[i]
+
+      # Skip non-INFO fields
       next if i == NUM_CHR
       next if i == NUM_POS
       next if i == NUM_REF
@@ -135,6 +142,8 @@ File.open(F_IN).each_line do |row|
       next if i == NUM_ID
       next if i == NUM_QUAL
       next if i == NUM_FILTER
+
+      # Add info tags to header
       header += "##INFO=<ID=#{fields[i]},Number=.,Type=String,Description=\"#{description}\">\n"
     end
     header += ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO'].join("\t")
