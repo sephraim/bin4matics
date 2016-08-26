@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+  echo -e "NAME"
+  echo -e "\tin2not1 - get lines from FILE2 that are not in FILE1"
+  echo -e ""
+  echo -e "SYNOPSIS"
+  echo -e "\tin2not1 FILE1 FILE2"
+  echo -e ""
+  echo -e "DESCRIPTION"
+  echo -e "\tRetrieve all lines from FILE2 that are not present"
+  echo -e "\tin FILE1."
+  echo -e ""
+  echo -e "\tExamples:"
+  echo -e "\t    # Using basic file input"
+  echo -e "\t    in2not1 good_movies.txt all_movies.txt > bad_movies.txt"
+  echo -e ""
+  echo -e "\t    # Using piped input from basic file"
+  echo -e "\t    cat file2.txt | in2not1 file1.txt > unique_to_file2.txt"
+  echo -e ""
+  echo -e "\t    # Comparing column 1 of FILE1 to column 5 of FILE2"
+  echo -e "\t    in2not1 <(cut -f1 file1.txt) <(cut -f5 file2.txt)"
+  exit 1
+fi
+
+grep -Fxvf $1 $2
